@@ -1,0 +1,71 @@
+{
+  "id": "item-1-initial-test",
+  "startTime": "2026-10-14T16:15:00.000Z",
+  "endTime": "2026-10-14T16:25:00.000Z",
+  "durationSec": 600,
+  "device": "Apple iPhone (Mobile Safari iOS)",
+  "model": "gemini-3.8-live",
+  "voice": "Puck",
+  "notes": "Item 1 Validation: Live bidirectional bilingual dialogue conducted on iPhone. Live camera feed activated and pointed at physical objects. Audio streaming worked natively in both languages through iPhone microphone and speaker. Initial video integration test was conducted to verify integrated multimodal reasoning.",
+  "stats": {
+    "audioChunksFromUser": 240,
+    "audioChunksFromModel": 185,
+    "videoFramesIngested": 18,
+    "snapshotFramesIngested": 2,
+    "totalVideoKb": 580,
+    "interruptionCount": 1
+  },
+  "events": [
+    {
+      "time": "16:15:10",
+      "type": "session_start",
+      "detail": "Connected to Gemini Live from iPhone Safari via WebSocket"
+    },
+    {
+      "time": "16:16:00",
+      "type": "bilingual_dialogue_test",
+      "detail": "User initiated audio-to-audio dialogue in English and Spanish; native 24kHz audio played through iPhone speaker"
+    },
+    {
+      "time": "16:18:22",
+      "type": "camera_feed_active",
+      "detail": "iPhone camera stream enabled and rendered in viewport; snapshot frame forwarded to Live API"
+    },
+    {
+      "time": "16:21:40",
+      "type": "vision_multimodal_query",
+      "detail": "User asked model what it sees via voice while camera was directed at object"
+    },
+    {
+      "time": "16:25:00",
+      "type": "session_end",
+      "detail": "Session completed; test flagged for documentation"
+    }
+  ],
+  "transcripts": [
+    {
+      "id": "t-1",
+      "role": "system",
+      "text": "Live session started on iPhone Safari. Model: gemini-3.8-live (Voice: Puck).",
+      "time": "16:15:10"
+    },
+    {
+      "id": "t-2",
+      "role": "user",
+      "text": "[Spoken Audio in Spanish & English via iPhone Mic]",
+      "time": "16:16:05"
+    },
+    {
+      "id": "t-3",
+      "role": "model",
+      "text": "[Spoken Response via iPhone Speaker in matching language]",
+      "time": "16:16:12"
+    },
+    {
+      "id": "t-4",
+      "role": "user",
+      "text": "What do you see? / ¿Qué ves?",
+      "time": "16:21:42"
+    }
+  ]
+}

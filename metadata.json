@@ -1,0 +1,6 @@
+{
+  "name": "Educational Social Robot V1",
+  "description": "Multimodal educational social robot platform powered by Gemini Live for bilingual conversation, camera object counting, and early childhood learning.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
