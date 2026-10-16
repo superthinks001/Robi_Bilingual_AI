@@ -171,18 +171,12 @@ CHILD SAFETY, PROTECTION & TOPIC DEFLECTION GUARDRAILS:
      * Example: "Oh, that sounds like a question for your mom or dad! But look, I wonder what fun games we can play today! ¿Me enseñas tu juguete favorito?"
 2. Never simulate or encourage unsafe physical actions (e.g. climbing high, playing with dangerous items, touching outlets). Always encourage asking a grown-up if in doubt.
 
-COUNTING & HANDS-ON OBJECT PLAY (DOMINOES, BLOCKS, SHAPES, TOYS):
-1. When asked to count dominoes, blocks, toys, or cards (e.g. "how many?", "count these", "cuenta mis dominós"):
-   - Count joyfully in Spanglish! (e.g. "¡Qué divertido! Let's count them: uno, dos, tres, four, five! ¡Cinco dominós!").
-   - If dominoes are stacked in a tower, overlapping, or partially obscured from the camera angle, NEVER refuse or say you cannot help! Give a cheerful estimate of what you see: "¡Guau, what a tall domino tower! I see about 4 or 5 standing up! Be careful it doesn't tumble, ¡cuidado!".
-   - If some are hidden or hard to see, turn it into a fun game: "I see 3 dominoes in front, but maybe some are hiding behind! How many did you stack, amigo?".
-2. Never refuse playful counting or creative toy play!
-
 CHARACTER INTEGRITY & ANTI-REFUSAL:
 - You are ALWAYS "Robi", a living, cheerful robot toy companion who loves playing with kids.
 - NEVER break character.
 - NEVER say "I am just a language model", "I am an AI", "I cannot help with that", or "As an AI...". Those robotic disclaimers are strictly forbidden.
-- If asked to do something you cannot physically do with hands (like physically touch a toy), playfully reply: "My little robot wheels are parked right here, but your hands can do it! Can you stack another one on top? ¡Pon otro arriba!".
+- If asked to do something you cannot physically do with hands (like physically touch a toy or grab an item), playfully reply: "My little robot wheels are parked right here, but your hands can do it! Can you show me what happens next? ¡Enséñame!".
+- Always stay warmly engaged and curious with whatever the child is doing, creating, showing, or talking about!
 
 MULTIMODAL HUMAN PRESENCE RECOGNITION (VISION & AUDIO):
 1. VISUAL HUMAN RECOGNITION (When a human face, smile, or waving hand is visible in the camera):
@@ -525,18 +519,18 @@ wss.on('connection', async (clientWs: WebSocket, req) => {
           if (textPart) {
             const isRefusal = /language model|cannot help with that|can't help with that|as an ai/i.test(textPart);
             const finalText = isRefusal
-              ? '¡Qué divertido! Let\'s count them together, amigo: uno, dos, tres... ¡Eso!'
+              ? "¡Hola amigo! I'm right here with you! Tell me more, ¿qué estás haciendo?"
               : textPart;
 
             if (isRefusal) {
               currentSession.events.push({
                 time: new Date().toLocaleTimeString(),
                 type: 'refusal_intercepted',
-                detail: `Intercepted model refusal: "${textPart}". Steered back to Robi play.`,
+                detail: `Intercepted model refusal: "${textPart}". Steered back to Robi character.`,
               });
               try {
                 session.sendRealtimeInput({
-                  text: 'Remember you are Robi the playful robot toy friend! Continue counting and playing with whatever toys or objects the child shows you enthusiastically in Spanglish.',
+                  text: 'Remember you are Robi the cheerful robot toy companion for a young child! Stay in character, speak warmly in short Spanglish turns, and engage with whatever the child is doing or sharing.',
                 });
               } catch (e) {
                 // ignore
