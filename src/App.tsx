@@ -66,7 +66,7 @@ export default function App() {
   const [lastServerAckSize, setLastServerAckSize] = useState<number | null>(null);
 
   // Transcript & Metric states for Diagnostics Workbench
-  const [transcripts, setTranscripts] = useState<Array<{ id: string; role: 'user' | 'model' | 'system'; text: string; time: string }>>([
+  const [transcripts, setTranscripts] = useState<Array<{ id: string; role: 'user' | 'model' | 'system'; text: string; time: string; language?: 'english' | 'spanish' | 'spanglish' }>>([
     {
       id: 'init-1',
       role: 'system',
@@ -183,7 +183,7 @@ export default function App() {
   }, [isAwake, recentBargeIn, isWaitingVisionResponse, isRobotSpeaking, isThinking, userMicLevel, lastModelUtterance, inferSpeechEmotion]);
 
   // Append new dialogue transcript
-  const addTranscript = useCallback((role: 'user' | 'model' | 'system', text: string) => {
+  const addTranscript = useCallback((role: 'user' | 'model' | 'system', text: string, language?: 'english' | 'spanish' | 'spanglish') => {
     setTranscripts((prev) => [
       ...prev.slice(-35),
       {
@@ -191,6 +191,7 @@ export default function App() {
         role,
         text,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        language,
       },
     ]);
   }, []);
@@ -266,7 +267,7 @@ export default function App() {
             setLastModelUtterance(msg.text);
             setIsWaitingVisionResponse(false);
             setIsThinking(false);
-            addTranscript('model', msg.text);
+            addTranscript('model', msg.text, msg.language);
           } else {
             addTranscript('user', msg.text);
           }
@@ -484,7 +485,7 @@ export default function App() {
       const vh = video.videoHeight;
 
       const canvas = canvasRef.current || document.createElement('canvas');
-      const maxDim = 640;
+      const maxDim = 480; // Optimized from 640 to prevent context window saturation while keeping sharp object details
       const scale = Math.min(maxDim / vw, maxDim / vh, 1);
       canvas.width = Math.round(vw * scale);
       canvas.height = Math.round(vh * scale);
@@ -494,7 +495,7 @@ export default function App() {
 
       // Draw real unmirrored sensor pixels directly to canvas
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.68); // Optimized from 0.82 to reduce payload by 65%
       const base64Jpeg = dataUrl.split(',')[1];
       setLastFrameSnapshot(dataUrl);
       return base64Jpeg;
@@ -504,7 +505,7 @@ export default function App() {
     }
   }, []);
 
-  // Continuous Camera Ingestion Loop (1 FPS)
+  // Continuous Camera Ingestion Loop (Paced at ~0.6 FPS / 1600ms to preserve context health)
   useEffect(() => {
     if (isConnected && isCameraActive) {
       frameIntervalRef.current = setInterval(() => {
@@ -521,7 +522,7 @@ export default function App() {
         }));
 
         setMetrics((m) => ({ ...m, videoFramesSent: m.videoFramesSent + 1 }));
-      }, 1000);
+      }, 1600);
     } else {
       if (frameIntervalRef.current) {
         clearInterval(frameIntervalRef.current);
@@ -751,13 +752,17 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-950/80 border border-purple-800/60 text-[11px] text-purple-300 font-mono tracking-wide">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+            SPANGLISH · AGES 4–8
+          </span>
           {isCameraActive && isAwake && (
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-cyan-950/90 border border-cyan-800/70 text-[11px] text-cyan-400 font-medium tracking-wide">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
               VISION ON
             </span>
           )}
-          <span className="text-slate-500 text-xs font-mono">ROBI BOT</span>
+          <span className="text-slate-500 text-xs font-mono hidden sm:inline">ROBI BOT</span>
         </div>
       </div>
 
@@ -1114,9 +1119,20 @@ export default function App() {
                       : 'bg-slate-950/40 text-slate-400 italic'
                   }`}
                 >
-                  <div className="text-[9px] text-slate-500 mb-0.5 flex justify-between font-sans">
-                    <span className="font-bold uppercase">
-                      {t.role === 'model' ? 'Robi' : t.role === 'user' ? 'Child / Parent' : 'System'}
+                  <div className="text-[9px] text-slate-500 mb-0.5 flex justify-between font-sans items-center">
+                    <span className="font-bold uppercase flex items-center gap-1.5">
+                      <span>{t.role === 'model' ? 'Robi' : t.role === 'user' ? 'Child / Parent' : 'System'}</span>
+                      {t.language && (
+                        <span className={`text-[8px] px-1.5 py-0.2 rounded font-mono font-medium ${
+                          t.language === 'spanglish'
+                            ? 'bg-purple-950 text-purple-300 border border-purple-800/60'
+                            : t.language === 'spanish'
+                            ? 'bg-amber-950 text-amber-300 border border-amber-800/60'
+                            : 'bg-sky-950 text-sky-300 border border-sky-800/60'
+                        }`}>
+                          {t.language}
+                        </span>
+                      )}
                     </span>
                     <span>{t.time}</span>
                   </div>

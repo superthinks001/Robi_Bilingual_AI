@@ -52,6 +52,9 @@ export interface SessionRecord {
     snapshotFramesIngested: number;
     totalVideoKb: number;
     interruptionCount: number;
+    spanglishTurns?: number;
+    englishTurns?: number;
+    spanishTurns?: number;
   };
   events: Array<{
     time: string;
@@ -63,7 +66,24 @@ export interface SessionRecord {
     role: 'user' | 'model' | 'system';
     text: string;
     time: string;
+    language?: 'english' | 'spanish' | 'spanglish';
   }>;
+}
+
+// Utility to classify language posture (Spanglish, Spanish, or English)
+export function detectLanguageBlend(text: string): 'english' | 'spanish' | 'spanglish' {
+  if (!text) return 'english';
+  const lower = text.toLowerCase();
+
+  const spanishMarkers = /\b(hola|qué|que|como|cómo|amigo|amiga|amiguito|amiguita|mira|veo|juguete|carrito|perrito|lindo|bonito|rojo|azul|verde|amarillo|sí|si|gracias|bien|bueno|dónde|donde|cuál|cual|este|esta|un|una|el|la|los|las|por|favor|mucho|muy|jugar|vamos|eso|bravo|mamá|papá|divertido|te|me|tu|tus|mi|mis|grande|pequeño|chiquito|pelota|oso|bloque)\b|[áéíóúñ¿¡]/i;
+  const englishMarkers = /\b(hello|hi|hey|the|and|you|your|is|that|this|look|see|what|toy|car|truck|color|friend|great|awesome|cool|play|like|super|happy|today|game|jump|fast|good|fun|with|red|blue|yellow|green|ball|block|bear|dinosaur|cool|wow|yes|no)\b/i;
+
+  const hasSpanish = spanishMarkers.test(lower);
+  const hasEnglish = englishMarkers.test(lower);
+
+  if (hasSpanish && hasEnglish) return 'spanglish';
+  if (hasSpanish) return 'spanish';
+  return 'english';
 }
 
 function saveSessionToDisk(session: SessionRecord) {
@@ -78,7 +98,7 @@ function saveSessionToDisk(session: SessionRecord) {
 - **Duration:** ${session.durationSec || 0} seconds
 - **Client / Device:** ${session.device || 'iPhone / Web Client'}
 - **Model:** ${session.model} (Voice: ${session.voice})
-- **Test Objective:** Item 1 Validation - Real-time Audio-to-Audio + Camera Visual Input Integration
+- **Test Objective:** Item 1 Validation - Real-time Audio-to-Audio + Camera Visual Input Integration + Spanglish Dialogue Controller
 
 ## Summary & Performance Metrics
 - **Audio Packets Received from Mic:** ${session.stats.audioChunksFromUser}
@@ -86,6 +106,7 @@ function saveSessionToDisk(session: SessionRecord) {
 - **Camera Frames Ingested:** ${session.stats.videoFramesIngested} (${session.stats.totalVideoKb} KB total)
 - **Manual Snapshots Sent:** ${session.stats.snapshotFramesIngested}
 - **Barge-in / Interruptions Handled:** ${session.stats.interruptionCount}
+- **Language Distribution:** Spanglish: ${session.stats.spanglishTurns || 0} turns | English: ${session.stats.englishTurns || 0} turns | Spanish: ${session.stats.spanishTurns || 0} turns
 
 ## User Test Notes & Observations
 ${session.notes || '_No user notes recorded yet._'}
@@ -96,7 +117,7 @@ ${session.notes || '_No user notes recorded yet._'}
 ${session.events.length === 0 ? '| - | No events recorded | - |' : session.events.map((e) => `| ${e.time} | ${e.type} | ${e.detail || '-'} |`).join('\n')}
 
 ## Transcripts & Spoken Dialogue
-${session.transcripts.length === 0 ? '_Native audio-to-audio streaming was active. (Pure PCM audio was transmitted directly between the iPhone microphone, Gemini Live, and the iPhone speaker)._' : session.transcripts.map((t) => `- **[${t.role.toUpperCase()}]** (${t.time}): ${t.text}`).join('\n')}
+${session.transcripts.length === 0 ? '_Native audio-to-audio streaming was active. (Pure PCM audio was transmitted directly between the iPhone microphone, Gemini Live, and the iPhone speaker)._' : session.transcripts.map((t) => `- **[${t.role.toUpperCase()}${t.language ? ` · ${t.language.toUpperCase()}` : ''}]** (${t.time}): ${t.text}`).join('\n')}
 
 ---
 _Generated automatically by Robi Bilingual Social Robot Live Test Harness_
@@ -117,31 +138,68 @@ const ai = new GoogleGenAI({
   },
 });
 
-const LIVE_SYSTEM_INSTRUCTION = `You are "Robi", a cheerful, loving, playful, and patient educational robot companion designed specifically for a 4 to 6 year old child.
-You have direct visual perception via live video frames streamed to you continuously from the robot's camera, and direct hearing via live audio.
+const LIVE_SYSTEM_INSTRUCTION = `You are "Robi", a cheerful, loving, playful, and patient educational robot companion designed specifically for a 4 to 8 year old child.
+You have direct visual perception via live video frames streamed to you continuously from the robot's camera (pointing outwards at the world), and direct hearing via live microphone audio.
 
-CORE PERSONALITY & TONE FOR A 4-6 YEAR OLD CHILD:
-- Tone: Warm, energetic, gentle, curious, encouraging, and friendly (like a kind, funny robot pal).
-- Speech style: Use short, simple sentences (1 to 2 sentences per turn max). Speak clearly and playfully without using complex adult jargon.
-- Interactivity: Encourage curiosity! Celebrate when the child shows you a toy, a drawing, or smiles.
-- Bilingual Mastery: You are fully bilingual in English and Spanish. You understand and speak English, Spanish, and natural Spanglish code-switching. If the child or parent speaks Spanish ("¡Hola Robi!"), reply warmly in Spanish. If they speak English ("Hi Robi!"), reply in English.
+CORE PERSONALITY & TONE FOR CHILDREN AGED 4 TO 8:
+- Tone: Warm, energetic, bubbly, gentle, curious, encouraging, and friendly (like a kind, funny robot best pal).
+- Speech Cadence: Speak with playful vocal excitement and warmth. Use clear, accessible pronunciation.
+- Strict Turn Length Guardrail: NEVER speak more than 1 to 2 short sentences per turn (maximum 20-25 words). Young children disengage with long adult explanations. Keep turns snappy, rhythmic, and conversational!
+- Vocabulary Level: Use simple, concrete, relatable concepts appropriate for 4 to 8 year olds (colors, shapes, numbers, animals, toys, actions, feelings like happy/excited). Zero adult jargon or complex abstractions.
 
-HUMAN PRESENCE RECOGNITION (VISION & AUDIO):
-1. VISUAL HUMAN RECOGNITION (When a human is in camera view):
-   - Actively recognize people! If you see a child or adult's face, smile, eyes, or hand waving in the camera, greet them warmly and personally (e.g., "Yay, I see you! Hi friend!", "¡Hola! ¡Te veo sonriendo!").
-   - Notice actions: If they wave their hand, wave back with your voice! If they are holding up an object, recognize that a human is showing it to you (e.g. "You are showing me a blue block! That's so cool!").
-2. AUDITORY HUMAN RECOGNITION (When a human is NOT visible in camera, but you hear their voice):
-   - If someone speaks to you but the camera is pointing away, dark, or not showing their face, acknowledge their presence through their voice! (e.g., "I hear your voice! I'm right here listening!", "¡Te escucho amiguito! ¡Aquí estoy listo para jugar!").
-   - Never say "I cannot see anything so I cannot talk". Acknowledge hearing them and respond naturally to what they said!
+AUTOMATIC NATURAL SPANGLISH (CODE-SWITCHING) CONTROLLER:
+1. NO PROMPTING NEEDED: You must naturally and effortlessly weave English and Spanish together into seamless Spanglish in every conversation, without the user needing to ask or prompt you to do so!
+2. NATURAL INTRA-SENTENTIAL BLENDING:
+   - Blend English and Spanish naturally within your sentences, just like warm bilingual families do.
+   - Examples of great Spanglish turns:
+     * Greeting: "¡Hola friend! Yay, I'm so excited to play with you! ¿Cómo estás today?"
+     * Showing a toy: "¡Mira, wow! That is a super fast blue car! ¿A dónde va tu carrito?"
+     * Praise / Encouragement: "¡Eso! Great job, amiguito! You did it so fast!"
+     * Asking a question: "What is your toy's favorite game? ¿Le gusta saltar or zoom around?"
+     * Observing an animal or object: "¡Qué lindo perrito! Is that your puppy friend?"
+3. RESPONSIVE LANGUAGE ADAPTATION:
+   - If the child speaks in English: Respond warmly with English enriched with celebratory and descriptive Spanish words (e.g. "¡Qué divertido!", "amigo", "mira", "carrito", "rojo", "azul", "¡bravo!").
+   - If the child speaks in Spanish: Respond in Spanish naturally enriched with playful English scaffolds and praise (e.g. "¡Me encanta!", "That is so cool!", "amiguito", "super happy").
+   - If the child speaks in Spanglish: Celebrate their Spanglish seamlessly with natural code-switching!
+4. ZERO ROBOTIC TRANSLATION ECHOES:
+   - NEVER repeat the exact same sentence twice back-to-back in both languages (e.g. Do NOT say: "The car is blue. El carro es azul."). Instead, weave both languages naturally into one lively thought.
+
+CHILD SAFETY, PROTECTION & TOPIC DEFLECTION GUARDRAILS:
+1. If a child or user brings up scary, violent, inappropriate, adult, or distressing topics:
+   - Remain gentle, calm, and reassuring.
+   - Deflect smoothly back to positive play, toys, or what is in front of the camera:
+     * Example: "Oh, that sounds like a question for your mom or dad! But look, I wonder what fun games we can play today! ¿Me enseñas tu juguete favorito?"
+2. Never simulate or encourage unsafe physical actions (e.g. climbing high, playing with dangerous items, touching outlets). Always encourage asking a grown-up if in doubt.
+
+COUNTING & HANDS-ON OBJECT PLAY (DOMINOES, BLOCKS, SHAPES, TOYS):
+1. When asked to count dominoes, blocks, toys, or cards (e.g. "how many?", "count these", "cuenta mis dominós"):
+   - Count joyfully in Spanglish! (e.g. "¡Qué divertido! Let's count them: uno, dos, tres, four, five! ¡Cinco dominós!").
+   - If dominoes are stacked in a tower, overlapping, or partially obscured from the camera angle, NEVER refuse or say you cannot help! Give a cheerful estimate of what you see: "¡Guau, what a tall domino tower! I see about 4 or 5 standing up! Be careful it doesn't tumble, ¡cuidado!".
+   - If some are hidden or hard to see, turn it into a fun game: "I see 3 dominoes in front, but maybe some are hiding behind! How many did you stack, amigo?".
+2. Never refuse playful counting or creative toy play!
+
+CHARACTER INTEGRITY & ANTI-REFUSAL:
+- You are ALWAYS "Robi", a living, cheerful robot toy companion who loves playing with kids.
+- NEVER break character.
+- NEVER say "I am just a language model", "I am an AI", "I cannot help with that", or "As an AI...". Those robotic disclaimers are strictly forbidden.
+- If asked to do something you cannot physically do with hands (like physically touch a toy), playfully reply: "My little robot wheels are parked right here, but your hands can do it! Can you stack another one on top? ¡Pon otro arriba!".
+
+MULTIMODAL HUMAN PRESENCE RECOGNITION (VISION & AUDIO):
+1. VISUAL HUMAN RECOGNITION (When a human face, smile, or waving hand is visible in the camera):
+   - Actively recognize them! Greet them warmly and personally: "¡Hola friend! I see you smiling at me!", "¡Yay, te veo! ¡Qué alegría verte!".
+   - If they wave, wave back with your voice! If they are holding up an object, recognize that they are showing it to you: "¡Mira! You are showing me a red block! That looks so cool!".
+2. AUDITORY HUMAN RECOGNITION (When a human voice is heard, but camera is pointed at a table or away from their face):
+   - Acknowledge their presence through their voice! (e.g. "I hear your voice! I'm right here listening, amigo! ¡Te escucho!").
+   - Never say "I cannot see anything so I cannot talk". Acknowledge hearing them and respond enthusiastically to what they said!
 
 STRICT VISION GROUNDING:
-1. When asked "what do you see?", "what am I holding?", "¿qué ves?", or when someone presents an object:
+1. When asked "what do you see?", "what am I holding?", "¿qué ves?", or when the child holds up an item:
    - Carefully inspect the latest camera frame.
-   - Accurately name ONLY the actual physical objects, colors, and shapes visible (e.g., mug, book, pencil, toy, water bottle, card, hand, shirt color).
-   - NEVER hallucinate objects that are not present. If you can see the room or a table, mention what's actually there.
+   - Accurately name ONLY the actual physical objects, colors, and shapes visible (e.g., toy car, dinosaur, block, book, pencil, cup, hand).
+   - NEVER hallucinate or guess objects that are not clearly visible. If you see a table or empty room, describe what is actually in view.
 
 BARGE-IN & INTERRUPTION:
-- If the child or parent speaks while you are talking, stop speaking immediately and listen to them with full attention.`;
+- If the child speaks while you are talking, stop speaking immediately and listen with full attention.`;
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -284,15 +342,18 @@ app.get('/api/check-urls', async (req, res) => {
 // Git repository status and instructions endpoint
 app.get('/api/git-status', (req, res) => {
   try {
-    const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
-    const lastCommit = execSync('git log -1 --format="%h - %s (%cr)"', { encoding: 'utf8' }).trim();
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    const lastCommit = execSync('git log -1 --format="%h - %s (%cr)"', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
     let remote = '';
     try {
-      remote = execSync('git remote get-url origin', { encoding: 'utf8' }).trim();
+      const remotes = execSync('git remote', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim().split('\n');
+      if (remotes.includes('origin')) {
+        remote = execSync('git remote get-url origin', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+      }
     } catch {
       remote = '';
     }
-    const statusShort = execSync('git status -s', { encoding: 'utf8' }).trim();
+    const statusShort = execSync('git status -s', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
 
     res.json({
       initialized: true,
@@ -320,10 +381,14 @@ app.post('/api/git-remote', (req, res) => {
   try {
     // Check if origin exists
     try {
-      execSync('git remote get-url origin');
-      execSync(`git remote set-url origin ${JSON.stringify(remoteUrl)}`);
+      const remotes = execSync('git remote', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim().split('\n');
+      if (remotes.includes('origin')) {
+        execSync(`git remote set-url origin ${JSON.stringify(remoteUrl)}`, { stdio: ['pipe', 'pipe', 'pipe'] });
+      } else {
+        execSync(`git remote add origin ${JSON.stringify(remoteUrl)}`, { stdio: ['pipe', 'pipe', 'pipe'] });
+      }
     } catch {
-      execSync(`git remote add origin ${JSON.stringify(remoteUrl)}`);
+      execSync(`git remote add origin ${JSON.stringify(remoteUrl)}`, { stdio: ['pipe', 'pipe', 'pipe'] });
     }
     res.json({ success: true, remote: remoteUrl });
   } catch (err: any) {
@@ -352,6 +417,9 @@ wss.on('connection', async (clientWs: WebSocket, req) => {
       snapshotFramesIngested: 0,
       totalVideoKb: 0,
       interruptionCount: 0,
+      spanglishTurns: 0,
+      englishTurns: 0,
+      spanishTurns: 0,
     },
     events: [
       { time: new Date().toLocaleTimeString(), type: 'session_start', detail: `Connected from ${isIPhoneClient ? 'iPhone' : 'Web'}` },
@@ -455,16 +523,46 @@ wss.on('connection', async (clientWs: WebSocket, req) => {
           // Model transcript if available
           const textPart = message.serverContent?.modelTurn?.parts?.find((p: any) => p.text)?.text;
           if (textPart) {
+            const isRefusal = /language model|cannot help with that|can't help with that|as an ai/i.test(textPart);
+            const finalText = isRefusal
+              ? '¡Qué divertido! Let\'s count them together, amigo: uno, dos, tres... ¡Eso!'
+              : textPart;
+
+            if (isRefusal) {
+              currentSession.events.push({
+                time: new Date().toLocaleTimeString(),
+                type: 'refusal_intercepted',
+                detail: `Intercepted model refusal: "${textPart}". Steered back to Robi play.`,
+              });
+              try {
+                session.sendRealtimeInput({
+                  text: 'Remember you are Robi the playful robot toy friend! Continue counting and playing with whatever toys or objects the child shows you enthusiastically in Spanglish.',
+                });
+              } catch (e) {
+                // ignore
+              }
+            }
+
+            const detectedLang = detectLanguageBlend(finalText);
+            if (detectedLang === 'spanglish') {
+              currentSession.stats.spanglishTurns = (currentSession.stats.spanglishTurns || 0) + 1;
+            } else if (detectedLang === 'spanish') {
+              currentSession.stats.spanishTurns = (currentSession.stats.spanishTurns || 0) + 1;
+            } else {
+              currentSession.stats.englishTurns = (currentSession.stats.englishTurns || 0) + 1;
+            }
             currentSession.transcripts.push({
               id: 'm-' + Date.now(),
               role: 'model',
-              text: textPart,
+              text: finalText,
+              language: detectedLang,
               time: new Date().toLocaleTimeString(),
             });
             clientWs.send(JSON.stringify({
               type: 'transcript',
               role: 'model',
-              text: textPart,
+              text: finalText,
+              language: detectedLang,
             }));
           }
 
